@@ -1,0 +1,13 @@
+
+datasets:
+  path: ./
+  img_path: images/
+  filenames:
+    dataset: oral1-10.json
+    train: train.json
+    val: validation.json
+    test: test.json
+
+prepare_dataset:
+  train_size: 0.7
+  val_size: 0.9
