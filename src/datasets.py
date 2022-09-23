@@ -1,10 +1,11 @@
 import json
 import os
 import numpy as np
-from PIL import Image
 from torch.utils.data import Dataset
 from torchvision.io import read_image
 from matplotlib import pyplot as plt
+import torchvision
+import torchvision.transforms as transforms
 
 
 class Triplet_Oral_Dataset(Dataset):
@@ -88,6 +89,7 @@ class Triplet_Oral_Dataset(Dataset):
         
         # apply transformation to each images
         if self.transform is not None:
+            # TODO permute images
             img1 = self.transform(img1)
             img2 = self.transform(img2)
             img3 = self.transform(img3)
@@ -107,8 +109,23 @@ class Triplet_Oral_Dataset(Dataset):
 
 # testing main
 if __name__ == '__main__':
-    train = Triplet_Oral_Dataset('/home/marco/Documents/oral/data/oral_dataset/train.json', '/home/marco/Documents/oral/data/oral_dataset/images/', train=False)
+    
+
+    transform= transforms.Compose([
+        transforms.Resize((300,300), interpolation=torchvision.transforms.InterpolationMode.BICUBIC)
+        ])
+
+    train = Triplet_Oral_Dataset('/home/marco/Documents/oral/data/oral_dataset/train.json', 
+                                '/home/marco/Documents/oral/data/oral_dataset/images/', 
+                                train=False,
+                                transform=transform)
     print(train.__len__())
+    
+    '''
+    for i in range(10):
+        imgs, lbl = train.__getitem__(i)
+        print(imgs[0].permute(1, 2, 0).max(), imgs[0].permute(1, 2, 0).min())
+    '''
     
     for i in range(10):
         imgs, lbl = train.__getitem__(i)
