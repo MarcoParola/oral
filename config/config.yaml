@@ -20,7 +20,7 @@ prepare_dataset:
 
 training:
   lr: 1e-4
-  epochs: 30
+  epochs: 130
   batch: 32
 
 models:

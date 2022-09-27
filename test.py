@@ -25,16 +25,16 @@ def test(cfg):
     net = EmbeddingNet(64, 2)
     triple_net = TripletNet(net)
     model_path = os.path.join(cfg.project_path, cfg.models.path, 'triple_net_weights.pth')
-    triple_net.load_state_dict(torch.load(model_path)
+    triple_net.load_state_dict(torch.load(model_path))
     triple_net.eval()
 
     train_embeddings_tl, train_labels_tl = extract_embeddings(triplet_train_loader, triple_net, cuda)
     print(train_embeddings_tl.shape, train_labels_tl.shape)
-    plot_embeddings(train_embeddings_tl, train_labels_tl)    
+    plot_embeddings(train_embeddings_tl, train_labels_tl, n_classes)    
     
     val_embeddings_tl, val_labels_tl = extract_embeddings(triplet_test_loader, triple_net, cuda)
     print(val_embeddings_tl.shape, val_labels_tl.shape)
-    plot_embeddings(val_embeddings_tl, val_labels_tl)
+    plot_embeddings(val_embeddings_tl, val_labels_tl, n_classes)
 
 
 
