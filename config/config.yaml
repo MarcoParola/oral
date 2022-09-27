@@ -1,6 +1,9 @@
 
+project_path: ./
+
 datasets:
-  path: ./
+  n_classes: 3
+  path: data/oral_dataset/
   img_path: images/
   filenames:
     dataset: oral1-10.json
@@ -11,3 +14,16 @@ datasets:
 prepare_dataset:
   train_size: 0.7
   val_size: 0.9
+  transform:
+    width: 300 
+    height: 300
+
+training:
+  lr: 1e-4
+  epochs: 30
+  batch: 32
+
+models:
+  path: models
+  output_size: 2
+  fc1_size: 64

@@ -1,7 +1,7 @@
 import json
 import os
 import numpy as np
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 from torchvision.io import read_image
 from matplotlib import pyplot as plt
 import torchvision
@@ -15,7 +15,6 @@ class Triplet_Oral_Dataset(Dataset):
     TRAIN: For each sample (anchor) randomly chooses a positive and negative samples
     TEST and VALIDATION: Creates fixed triplets for testing
     '''
-
     def __init__(self, json_dataset_file, images_path, train=False, transform=None):
 
         self.json_dataset_file = json_dataset_file
@@ -47,12 +46,10 @@ class Triplet_Oral_Dataset(Dataset):
                                      for label in self.labels_set}
 
             random_state = np.random.RandomState()
-
             triplets = [[i,
                          random_state.choice(self.label_to_indices[self.labels[i]]),
                          random_state.choice(self.label_to_indices[
-                                np.random.choice(list(self.labels_set - set([self.labels[i]]))
-                            )])]
+                                np.random.choice(list(self.labels_set - set([self.labels[i]])))])]
                         for i in range(len(self.test_data))]
             self.test_triplets = triplets
 
@@ -90,11 +87,14 @@ class Triplet_Oral_Dataset(Dataset):
         # apply transformation to each images
         if self.transform is not None:
             # TODO permute images
+            img1 = img1 / 255
+            img2 = img2 / 255
+            img3 = img3 / 255
             img1 = self.transform(img1)
             img2 = self.transform(img2)
             img3 = self.transform(img3)
         
-        return (img1, img2, img3), []
+        return (img1, img2, img3), [self.labels[index]]
 
 
     # utility function to get the portion of image containing the lesion
@@ -104,13 +104,45 @@ class Triplet_Oral_Dataset(Dataset):
 
     def __len__(self):
         return len(self.labels)
-    
+
+
+
+
+# utility function returning the DataLoaders
+def get_dataLoader(cfg):
+
+    batch_size = cfg.training.batch
+    project_path = cfg.project_path
+    train_json_filename = cfg.datasets.filenames.train
+    val_json_filename = cfg.datasets.filenames.val
+    test_json_filename = cfg.datasets.filenames.test
+    img_folder = cfg.datasets.img_path
+    data_path = os.path.join(project_path, cfg.datasets.path)
+    width = cfg.prepare_dataset.transform.width
+    height = cfg.prepare_dataset.transform.height
+    train_json_filename = os.path.join(data_path, train_json_filename)
+    val_json_filename = os.path.join(data_path, val_json_filename)
+    test_json_filename = os.path.join(data_path, test_json_filename)
+    img_folder = os.path.join(data_path, img_folder)
+
+    # transformation to preprocess the images
+    transform= transforms.Compose([
+        transforms.Resize((width,height), interpolation=torchvision.transforms.InterpolationMode.BICUBIC)
+        ])
+    train = Triplet_Oral_Dataset(train_json_filename, img_folder, train=True, transform=transform)
+    val = Triplet_Oral_Dataset(val_json_filename, img_folder, transform=transform)
+    test = Triplet_Oral_Dataset(test_json_filename, img_folder, transform=transform)
+    train_dataLoader = DataLoader(train, batch_size=batch_size, shuffle=True)
+    val_dataLoader = DataLoader(val, batch_size=batch_size, shuffle=True)
+    test_dataLoader = DataLoader(test, batch_size=batch_size, shuffle=True)
+
+    return train_dataLoader, val_dataLoader, test_dataLoader
+
 
 
 # testing main
 if __name__ == '__main__':
     
-
     transform= transforms.Compose([
         transforms.Resize((300,300), interpolation=torchvision.transforms.InterpolationMode.BICUBIC)
         ])
@@ -119,14 +151,11 @@ if __name__ == '__main__':
                                 '/home/marco/Documents/oral/data/oral_dataset/images/', 
                                 train=False,
                                 transform=transform)
-    print(train.__len__())
+                                
+    imgs, lbl = train.__getitem__(0)
+    print(type(imgs[0]), imgs[0].size())
     
     '''
-    for i in range(10):
-        imgs, lbl = train.__getitem__(i)
-        print(imgs[0].permute(1, 2, 0).max(), imgs[0].permute(1, 2, 0).min())
-    '''
-    
     for i in range(10):
         imgs, lbl = train.__getitem__(i)
         plt.imshow(  imgs[0].permute(1, 2, 0)  )
@@ -134,5 +163,6 @@ if __name__ == '__main__':
         plt.imshow(  imgs[1].permute(1, 2, 0)  )
         plt.show()  
         plt.imshow(  imgs[2].permute(1, 2, 0)  )
-        plt.show()  
+        plt.show() 
+    ''' 
     
