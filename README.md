@@ -7,7 +7,7 @@ cd ...
 mkdir data/oral_dataset/images
 ```
 
-download images and coco dataset
+download images and coco dataset (put cocodataset in ./data/oral_dataset/)
 
 
 ```sh
