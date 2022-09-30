@@ -6,24 +6,25 @@ datasets:
   path: data/oral_dataset/
   img_path: images/
   filenames:
-    dataset: oral1-10.json
+    dataset: oral1-11.json
     train: train.json
     val: validation.json
     test: test.json
 
 prepare_dataset:
-  train_size: 0.7
+  train_size: 0.8
   val_size: 0.9
   transform:
     width: 300 
     height: 300
 
 training:
-  lr: 1e-4
-  epochs: 130
-  batch: 32
+  lr: 8e-4
+  epochs: 2
+  batch: 64
 
 models:
   path: models
-  output_size: 2
-  fc1_size: 64
+  dropout: 0.15
+  output_size: 10
+  fc1_size: 32

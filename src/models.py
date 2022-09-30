@@ -1,25 +1,44 @@
 import torch.nn as nn
 import torch.nn.functional as F
 from torchsummary import summary
-
+import torchvision.models as models
 
 class EmbeddingNet(nn.Module):
-    def __init__(self, fc1_size, output_size):
+
+    def __init__(self, hyper_param_dict):
         super(EmbeddingNet, self).__init__()
-        self.convnet = nn.Sequential(nn.Conv2d(3, 16, 5), nn.PReLU(),
-                                     nn.MaxPool2d(5, stride=3),
-                                     nn.Conv2d(16, 32, 3), nn.PReLU(),
-                                     nn.MaxPool2d(4, stride=2),
-                                     nn.Conv2d(32, 64, 3), nn.PReLU(),
-                                     nn.MaxPool2d(3, stride=2),
-                                     nn.Conv2d(64, 32, 3), nn.PReLU(),
-                                     nn.MaxPool2d(2, stride=1))
+        fc1_size = hyper_param_dict['fc1_size']
+        self.output_size = hyper_param_dict['output_size']
+        dropout_rate = hyper_param_dict['dropout']
+
+        self.convnet = nn.Sequential(
+            nn.Conv2d(3, 16, 5), nn.PReLU(),
+            nn.Dropout(p=dropout_rate), nn.MaxPool2d(5, stride=3),
+            nn.Conv2d(16, 32, 3), nn.PReLU(),
+            nn.Dropout(p=dropout_rate), nn.MaxPool2d(4, stride=2),
+            nn.Conv2d(32, 64, 3), nn.PReLU(),
+            nn.Dropout(p=dropout_rate), nn.MaxPool2d(3, stride=2),
+            nn.Conv2d(64, 32, 3), nn.PReLU(),
+            nn.Dropout(p=dropout_rate), nn.MaxPool2d(2, stride=1))
+
+        #self.convnet = models.vgg16(pretrained=True)
         
-        self.fc = nn.Sequential(nn.Linear(32 * 19 * 19, fc1_size),
-                                nn.PReLU(),
-                                nn.Linear(fc1_size, fc1_size),
-                                nn.PReLU(),
-                                nn.Linear(fc1_size, output_size))
+        self.fc = nn.Sequential(
+            nn.Linear(32 * 19 * 19, fc1_size),
+            nn.PReLU(), nn.Dropout(p=dropout_rate), 
+            nn.Linear(fc1_size, fc1_size),
+            nn.PReLU(), nn.Dropout(p=dropout_rate), 
+            nn.Linear(fc1_size, self.output_size))
+
+        '''
+        num_ftrs = self.convnet.fc.in_features
+        self.fc = nn.Sequential(
+            nn.Linear(num_ftrs, fc1_size),
+            nn.PReLU(), nn.Dropout(p=dropout_rate), 
+            nn.Linear(fc1_size, fc1_size),
+            nn.PReLU(), nn.Dropout(p=dropout_rate), 
+            nn.Linear(fc1_size, self.output_size))
+        '''
         
     def forward(self, x):
         output = self.convnet(x)
@@ -27,12 +46,16 @@ class EmbeddingNet(nn.Module):
         output = self.fc(output)
         return output
 
+    def get_outputsize(self):
+        return self.output_size
+
     def get_embedding(self, x):
         return self.forward(x)
 
 
 
 class TripletNet(nn.Module):
+
     def __init__(self, embedding_net):
         super(TripletNet, self).__init__()
         self.embedding_net = embedding_net
@@ -43,13 +66,16 @@ class TripletNet(nn.Module):
         output3 = self.embedding_net(x3)
         return output1, output2, output3
 
+    def get_outputsize(self):
+        return self.embedding_net.get_outputsize()
+
     def get_embedding(self, x):
         return self.embedding_net(x)
 
 
 
 if __name__ == '__main__':
-    net = EmbeddingNet(64, 2)
+    net = EmbeddingNet({'path': 'models', 'dropout': 0.15, 'output_size': 2, 'fc1_size': 64})
 
     triple_net = TripletNet(net)
 

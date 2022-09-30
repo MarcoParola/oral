@@ -1,43 +1,56 @@
-from src.datasets import get_dataLoader
+from src.datasets import get_datasets
 import hydra
 import os
 import torch
 import numpy as np
 from src.models import EmbeddingNet, TripletNet
 from src.losses import TripletLoss
+from torch.nn import TripletMarginLoss
 import torch.optim as optim
 from torch.optim import lr_scheduler
 import matplotlib.pyplot as plt
-
-
+from torchsummary import summary
+from test import extract_embeddings
+from collections import Counter
+from torch.utils.data import DataLoader
 
 
 @hydra.main(config_path="./config/", config_name="config")
 def train(cfg):
 
     # load data
-    triplet_train_loader, triplet_val_loader, triplet_test_loader = get_dataLoader(cfg)
+    train_set, validation_set, test_set = get_datasets(cfg)
+    triplet_train_loader = DataLoader(train_set, batch_size=cfg.training.batch, shuffle=True)
+    triplet_val_loader = DataLoader(validation_set, batch_size=cfg.training.batch, shuffle=True)
+    triplet_test_loader = DataLoader(test_set, batch_size=cfg.training.batch, shuffle=True)
+    
+    print(train_set.__len__(), Counter(train_set.labels))
+    print(validation_set.__len__(), Counter(validation_set.labels))
+    print(test_set.__len__(), Counter(test_set.labels))
     
     # declare model
-    net = EmbeddingNet(64, 2)
+    net = EmbeddingNet(cfg.models)
     triple_net = TripletNet(net)
 
     margin = 1.
     cuda = False
-    loss_fn = TripletLoss(margin)
+    #loss_fn = TripletLoss(margin)
+    loss_fn = TripletMarginLoss(margin=1.0, p=2)
     lr = cfg.training.lr
     optimizer = optim.Adam(triple_net.parameters(), lr=lr)
     scheduler = lr_scheduler.StepLR(optimizer, 8, gamma=0.1, last_epoch=-1)
     n_epochs = cfg.training.epochs
     log_interval = 100
 
+
+    
     # train
     fit(triplet_train_loader, triplet_val_loader, triple_net, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval)
 
     # save model
-    model_path = os.path.join(cfg.project_path, cfg.models.path, 'triple_net_weights.pth')
+    model_path = os.path.join(cfg.project_path, cfg.models.path, 'triple_net_weights2.pth')
     torch.save(triple_net.state_dict(), model_path)
-
+    
 
 
 
@@ -109,8 +122,7 @@ def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, met
         if target is not None:
             target = (target,)
             loss_inputs += target
-
-        loss_outputs = loss_fn(*loss_inputs)
+        loss_outputs = loss_fn(*loss_inputs[:-1])
         loss = loss_outputs[0] if type(loss_outputs) in (tuple, list) else loss_outputs
         losses.append(loss.item())
         total_loss += loss.item()
@@ -158,7 +170,7 @@ def test_epoch(val_loader, model, loss_fn, cuda, metrics):
                 target = (target,)
                 loss_inputs += target
 
-            loss_outputs = loss_fn(*loss_inputs)
+            loss_outputs = loss_fn(*loss_inputs[:-1])
             loss = loss_outputs[0] if type(loss_outputs) in (tuple, list) else loss_outputs
             val_loss += loss.item()
 

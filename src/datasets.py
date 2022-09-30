@@ -1,11 +1,13 @@
 import json
 import os
+import random
 import numpy as np
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from torchvision.io import read_image
 from matplotlib import pyplot as plt
 import torchvision
 import torchvision.transforms as transforms
+
 
 
 class Triplet_Oral_Dataset(Dataset):
@@ -29,9 +31,17 @@ class Triplet_Oral_Dataset(Dataset):
         self.labels = [item['label'] for item in data['data']]
         self.bboxes = [item['bbox'] for item in data['data']]
 
+        seed = 42
+        random.seed(seed)
+        random.shuffle(self.labels)
+        random.seed(seed)
+        random.shuffle(self.bboxes)
+
         # train
         if self.train:
             self.train_data = [item['image_name'] for item in data['data']]
+            random.seed(seed)
+            random.shuffle(self.train_data)
             self.labels_set = set(np.array(self.labels))
             # generate random triplets for training
             self.label_to_indices = {label: np.where(np.array(self.labels) == label)[0]
@@ -40,6 +50,8 @@ class Triplet_Oral_Dataset(Dataset):
         # test or validation
         else:
             self.test_data = [item['image_name'] for item in data['data']]
+            random.seed(seed)
+            random.shuffle(self.test_data)
             # generate fixed triplets for testing
             self.labels_set = set(np.array(self.labels))
             self.label_to_indices = {label: np.where(np.array(self.labels) == label)[0]
@@ -107,11 +119,9 @@ class Triplet_Oral_Dataset(Dataset):
 
 
 
-
-# utility function returning the DataLoaders
-def get_dataLoader(cfg):
-
-    batch_size = cfg.training.batch
+# utility function returning the Datasets
+def get_datasets(cfg):
+    
     project_path = cfg.project_path
     train_json_filename = cfg.datasets.filenames.train
     val_json_filename = cfg.datasets.filenames.val
@@ -129,15 +139,10 @@ def get_dataLoader(cfg):
     transform= transforms.Compose([
         transforms.Resize((width,height), interpolation=torchvision.transforms.InterpolationMode.BICUBIC)
         ])
-    train = Triplet_Oral_Dataset(train_json_filename, img_folder, train=True, transform=transform)
-    val = Triplet_Oral_Dataset(val_json_filename, img_folder, transform=transform)
-    test = Triplet_Oral_Dataset(test_json_filename, img_folder, transform=transform)
-    train_dataLoader = DataLoader(train, batch_size=batch_size, shuffle=True)
-    val_dataLoader = DataLoader(val, batch_size=batch_size, shuffle=True)
-    test_dataLoader = DataLoader(test, batch_size=batch_size, shuffle=True)
-
-    return train_dataLoader, val_dataLoader, test_dataLoader
-
+    train_set = Triplet_Oral_Dataset(train_json_filename, img_folder, train=True, transform=transform)
+    validation_set = Triplet_Oral_Dataset(val_json_filename, img_folder, transform=transform)
+    test_set = Triplet_Oral_Dataset(test_json_filename, img_folder, transform=transform)
+    return train_set, validation_set, test_set
 
 
 # testing main
