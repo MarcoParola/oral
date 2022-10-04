@@ -37,7 +37,8 @@ def split_dataset(cfg):
                         {'image_name': data['images'][i]['path'].split('/')[3],
                         'label': [item['id'] for item in labels_dict if bboxes[j]['category_id'] in item['categories']][0],
                         'bbox': bboxes[j]['bbox']})
-        
+    
+    random.seed(cfg.prepare_dataset.seed)
     random.shuffle(dataset)
 
     # compute the size of each set
