@@ -20,12 +20,18 @@ prepare_dataset:
     height: 300
 
 training:
-  lr: 8e-4
-  epochs: 2
-  batch: 64
+  wandb: false
+  lr: 1e-3
+  epochs: 10
+  batch: 16
 
 models:
-  path: models
+  path: ${hydra:runtime.cwd}/models
   dropout: 0.15
   output_size: 10
   fc1_size: 32
+
+wandb:
+  entity: mlpi
+  project: oral-contrastive
+  tag: ""
