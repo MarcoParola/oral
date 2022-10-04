@@ -29,7 +29,7 @@ def test(cfg):
     print(validation_set.__len__(), Counter(validation_set.labels))
     print(test_set.__len__(), Counter(test_set.labels))
 
-    cuda = False 
+    cuda = torch.cuda.is_available() 
     n_classes = cfg.datasets.n_classes
 
     # load model
@@ -73,12 +73,14 @@ def plot_embeddings(embeddings, targets, n_classes, xlim=None, ylim=None):
 def extract_embeddings(dataloader, model, cuda):
     with torch.no_grad():
         model.eval()
+        if cuda:
+            model.to("cuda")
         embeddings = np.zeros((len(dataloader.dataset), model.get_outputsize()))
         labels = np.zeros(len(dataloader.dataset))
         k = 0
         for images, target in dataloader:
             if cuda:
-                images = images.cuda()
+                images = [img.cuda() for img in images]
             embeddings[k:k+len(images[0])] = model.get_embedding(images[0]).data.cpu().numpy()
             labels[k:k+len(images[0])] = target[0].numpy()
             k += len(images)
