@@ -47,15 +47,15 @@ def train(cfg):
         loggers.append(wandb_logger)
 
     # declare model
-    net = EmbeddingNet(cfg.models)
-    triple_net = TripletNet(net)
+    triple_net = TripletNet(cfg.models)
 
     trainer = Trainer(
         accelerator="auto",
         devices=1 if torch.cuda.is_available() else None,
         max_epochs=cfg.training.epochs,
         callbacks=[TQDMProgressBar(refresh_rate=1)],
-        logger=loggers
+        logger=loggers,
+        log_every_n_steps=1
     )
 
     trainer.fit(triple_net, triplet_train_loader)

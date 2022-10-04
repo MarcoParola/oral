@@ -1,5 +1,6 @@
 from src.datasets import get_datasets
 import hydra
+from hydra.utils import get_original_cwd
 import os
 import torch
 import numpy as np
@@ -33,8 +34,7 @@ def test(cfg):
     n_classes = cfg.datasets.n_classes
 
     # load model
-    net = EmbeddingNet(cfg.models)
-    triple_net = TripletNet(net)
+    triple_net = TripletNet(cfg.models)
     model_path = os.path.join(cfg.project_path, cfg.models.path, 'triple_net_weights2.pth')
     triple_net.load_state_dict(torch.load(model_path))
     triple_net.eval()
@@ -45,17 +45,17 @@ def test(cfg):
     pca.fit(train_embeddings_tl)
     train_embeddings_tl = pca.transform(train_embeddings_tl)
     print(train_embeddings_tl.shape, train_labels_tl.shape)
-    plot_embeddings(train_embeddings_tl, train_labels_tl, n_classes)    
+    plot_embeddings(train_embeddings_tl, train_labels_tl, n_classes, save="train.png")    
     
     val_embeddings_tl, val_labels_tl = extract_embeddings(triplet_val_loader, triple_net, cuda)
     print(val_embeddings_tl.shape, val_labels_tl.shape)
     val_embeddings_tl = pca.transform(val_embeddings_tl)
-    plot_embeddings(val_embeddings_tl, val_labels_tl, n_classes)
+    plot_embeddings(val_embeddings_tl, val_labels_tl, n_classes, save="val.png")
 
 
 
 
-def plot_embeddings(embeddings, targets, n_classes, xlim=None, ylim=None):
+def plot_embeddings(embeddings, targets, n_classes, xlim=None, ylim=None, save=None):
     plt.figure(figsize=(10,10))
     for i in range(n_classes):
         inds = np.where(targets==i)[0]
@@ -67,6 +67,10 @@ def plot_embeddings(embeddings, targets, n_classes, xlim=None, ylim=None):
         plt.ylim(ylim[0], ylim[1])
     plt.legend(ulcer_classes)
     plt.show()
+    if not save is None:
+        folder = os.path.join(get_original_cwd(), "plots")
+        os.makedirs(folder, exist_ok=True)
+        plt.savefig(os.path.join(folder, save))
 
 
 

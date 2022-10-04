@@ -54,13 +54,32 @@ class EmbeddingNet(nn.Module):
     def get_embedding(self, x):
         return self.forward(x)
 
+'''
+
+anchor_embeddings = [A1, A2, A3]
+positive_embeddings = [P1, P2, P3]
+negative_embeddings = [N1, N2, N3]
+
+
+   A1 A2 A3 P1 P2 P3 N1 N2 N3
+A1 1  1  1  1  1  1  0  0  0
+A2 1  1  1  1  1  1  0  0  0
+A3 1  1  1  1  1  1  0  0  0
+P1 1  1  1  1  1  1  0  0  0
+P2 1  1  1  1  1  1  0  0  0
+P3 1  1  1  1  1  1  0  0  0
+N1 0  0  0  0  0  0  1  1  1
+N2 0  0  0  0  0  0  1  1  1
+N3 0  0  0  0  0  0  1  1  1
+
+'''
 
 
 class TripletNet(LightningModule):
-    def __init__(self, embedding_net, lr=0.001):
+    def __init__(self, embedding_args, lr=0.001):
         super(TripletNet, self).__init__()
-        self.embedding_net = embedding_net
-        self.loss = nn.TripletMarginLoss(margin=1.0, p=2)
+        self.embedding_net = EmbeddingNet(embedding_args)
+        self.loss = nn.TripletMarginWithDistanceLoss(distance_function=nn.PairwiseDistance())
         self.lr = lr
 
     def forward(self, x1, x2, x3):
@@ -72,8 +91,16 @@ class TripletNet(LightningModule):
     def training_step(self, batch, batch_nb):
         (x1, x2, x3), _ = batch
         h1, h2, h3 = self(x1, x2, x3)
+        h = torch.cat([h1, h2, h3], dim=0)
+        h = F.normalize(h, dim=1)
+        contrastive_matrix = torch.matmul(h, h.t()).clip(0, 1)
+        
+        target_matrix = torch.ones_like(contrastive_matrix)
+        target_matrix[h1.shape[0]*2:, :h1.shape[0]*2] = 0
+        target_matrix[:h1.shape[0]*2, h1.shape[0]*2:] = 0
+        
+        loss = F.binary_cross_entropy(contrastive_matrix, target_matrix)
 
-        loss = self.loss(h1, h2, h3)
         self.log("train/loss", loss.item())
 
         return loss
@@ -89,12 +116,11 @@ class TripletNet(LightningModule):
 
 
 if __name__ == '__main__':
-    net = EmbeddingNet({'path': 'models', 'dropout': 0.15, 'output_size': 2, 'fc1_size': 64})
-    triple_net = TripletNet(net)
+    triple_net = TripletNet({'path': 'models', 'dropout': 0.15, 'output_size': 8, 'fc1_size': 64})
 
     '''
     summary(net, (3, 300, 300))
     summary(triple_net, [(3, 300, 300), (3, 300, 300), (3, 300, 300)]) 
     '''
     img = torch.randn(2, 3, 300, 300)
-    triple_net(img, img, img)
+    triple_net.training_step(((img, img, img), "cls"), 0)
