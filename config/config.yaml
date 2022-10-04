@@ -3,7 +3,7 @@ project_path: ./
 
 datasets:
   n_classes: 3
-  path: ./data/oral_dataset/
+  path: ${hydra:runtime.cwd}/data/oral_dataset/
   img_path: images/
   filenames:
     dataset: oral1-12.json
