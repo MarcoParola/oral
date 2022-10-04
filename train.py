@@ -48,6 +48,7 @@ def train(cfg):
     fit(triplet_train_loader, triplet_val_loader, triple_net, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval)
 
     # save model
+    os.makedirs(cfg.models.path, exist_ok=True)
     model_path = os.path.join(cfg.project_path, cfg.models.path, 'triple_net_weights2.pth')
     torch.save(triple_net.state_dict(), model_path)
     
