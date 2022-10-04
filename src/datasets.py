@@ -152,22 +152,23 @@ if __name__ == '__main__':
         transforms.Resize((300,300), interpolation=torchvision.transforms.InterpolationMode.BICUBIC)
         ])
 
-    train = Triplet_Oral_Dataset('/home/marco/Documents/oral/data/oral_dataset/train.json', 
-                                '/home/marco/Documents/oral/data/oral_dataset/images/', 
+    train = Triplet_Oral_Dataset('data/oral_dataset/train.json', 
+                                'data/oral_dataset/images/', 
                                 train=False,
                                 transform=transform)
                                 
     imgs, lbl = train.__getitem__(0)
     print(type(imgs[0]), imgs[0].size())
     
-    '''
+    
     for i in range(10):
         imgs, lbl = train.__getitem__(i)
+        print(lbl)
         plt.imshow(  imgs[0].permute(1, 2, 0)  )
         plt.show()  
         plt.imshow(  imgs[1].permute(1, 2, 0)  )
         plt.show()  
         plt.imshow(  imgs[2].permute(1, 2, 0)  )
         plt.show() 
-    ''' 
+    
     
